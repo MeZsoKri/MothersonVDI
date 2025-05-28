@@ -32,7 +32,12 @@ function createRebootWindow() {
     rebootWindow = new BrowserWindow({
         width: 300,
         height: 150,
-        frame: true,
+        frame: false,              // make window borderless
+        transparent: true,         // allow transparent background
+        alwaysOnTop: true,         // keep on top of other windows
+        skipTaskbar: true,         // don't show in taskbar
+        movable: false,
+        resizable: false,
         parent: mainWindow,
         modal: true,
         webPreferences: {

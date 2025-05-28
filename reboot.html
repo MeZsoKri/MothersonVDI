@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<style>
+    body{
+        background: #1e1e1e;
+        padding: 10px;
+        text-align: center;
+        color: white;
+    }
+    button{
+        width: 90%;
+        padding: 10px;
+        border: none;
+        background-color: #db2029;
+        color: white;
+        font-weight: bold;
+    }
+</style>
+<head><meta charset="UTF-8"><title>Reboot Pending</title></head>
+<body>
+  <h2>Reboot in <span id="timer">...</span>s</h2>
+  <button id="cancel">Cancel Reboot</button>
+  <script>
+    const { ipcRenderer } = require('electron');
+    const timerEl = document.getElementById('timer');
+    ipcRenderer.on('reboot-countdown', (e, secs) => {
+      timerEl.textContent = secs;
+    });
+    document.getElementById('cancel').addEventListener('click', () => {
+      ipcRenderer.send('cancel-reboot');
+    });
+  </script>
+</body>
+</html>
