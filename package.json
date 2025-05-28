@@ -1,0 +1,22 @@
+{
+  "name": "VDI",
+  "version": "1.0.0",
+  "description": "VDI",
+  "main": "main.js",
+  "author": "Menyhert Zsolt Kristof <zsoltkristof.menyhert@motherson.com>",
+  "bin": "main.js",
+    "build": {
+    "appId": "com.vdi.motherson",
+    "linux": {
+      "target": ["deb"]
+    }
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --debug"
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^26.0.12"
+  }
+}

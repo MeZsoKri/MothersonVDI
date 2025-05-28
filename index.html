@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VDI Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="titlebar">
+        <div class="drag-region"></div>
+        <div class="window-controls">
+            <button class="minimize-button">─</button>
+            <button class="close-button">×</button>
+        </div>
+    </div>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo">
+                <img src="IMG/Motherson.png" alt="Motherson Logo">
+            </div>
+            <form class="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Please enter username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Please enter password">
+                </div>
+                <div class="form-group">
+                    <label for="domain">IP Address/Host Name</label>
+                    <input type="text" name="ip" id="ip">
+                </div>
+                <div class="error-message">
+                    Login is denied (ThinOS activation license is not available)
+                </div>
+                <button type="submit" class="login-button">
+                    LOGIN
+                    <span class="arrow">→</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
