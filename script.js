@@ -32,7 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const connectionData = {
             username: usernameInput.value,
             password: passwordInput.value,
-            ip: ipInput.value
+            ip: ipInput.value,
+            rebootDelay: 60
         };
 
         // Save the connection data and start RDP
