@@ -7,6 +7,7 @@ let mainWindow;
 let rdpProcess = null;
 let rebootDelay = 0;        // delay in milliseconds before reboot after disconnection
 let rebootTimeout = null;
+let rebootInterval = null;   // interval for countdown updates
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -30,6 +31,7 @@ function createWindow() {
  */
 function rebootSystem() {
     console.log('Rebooting system now...');
+    mainWindow.webContents.send('reboot-now');
     if (process.platform === 'win32') {
         spawn('shutdown', ['-r', '-t', '0'], { detached: true, stdio: 'ignore' }).unref();
     } else {
@@ -38,13 +40,32 @@ function rebootSystem() {
 }
 
 /**
- * Schedule a reboot after the configured delay.
+ * Schedule a reboot after the configured delay and send an indicator to renderer.
  */
 function scheduleReboot() {
     if (rebootDelay > 0) {
+        // Clear any existing timers
         if (rebootTimeout) clearTimeout(rebootTimeout);
+        if (rebootInterval) clearInterval(rebootInterval);
+
+        let remaining = rebootDelay;
+        // Send initial scheduled event
+        mainWindow.webContents.send('reboot-scheduled', remaining / 1000);
+
+        // Set up countdown interval
+        rebootInterval = setInterval(() => {
+            remaining -= 1000;
+            if (remaining > 0) {
+                mainWindow.webContents.send('reboot-countdown', remaining / 1000);
+            } else {
+                clearInterval(rebootInterval);
+            }
+        }, 1000);
+
+        // Set timeout to actually reboot
         rebootTimeout = setTimeout(() => {
             rebootSystem();
+            clearInterval(rebootInterval);
         }, rebootDelay);
         console.log(`Scheduled reboot in ${rebootDelay}ms`);
     }
@@ -136,7 +157,7 @@ ipcMain.on('start-rdp', (event, connectionData) => {
     startRDPConnection(connectionData);
 });
 
-// Handle loading connection data (including rebootDelay)
+// Handle loading connection data (including rebootDelay in seconds)
 ipcMain.handle('load-connection', () => {
     const filePath = path.join(__dirname, 'connection_data.json');
     try {
