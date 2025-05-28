@@ -8,6 +8,7 @@ let rdpProcess = null;
 let rebootDelay = 0;        // delay in milliseconds before reboot after disconnection
 let rebootTimeout = null;
 let rebootInterval = null;   // interval for countdown updates
+let rebootWindow = null;     // window to show countdown and cancel
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -26,12 +27,50 @@ function createWindow() {
     mainWindow.loadFile('index.html');
 }
 
+function createRebootWindow() {
+    if (rebootWindow) return;
+    rebootWindow = new BrowserWindow({
+        width: 300,
+        height: 150,
+        frame: true,
+        parent: mainWindow,
+        modal: true,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+    rebootWindow.loadFile('reboot.html');
+    rebootWindow.on('closed', () => {
+        rebootWindow = null;
+    });
+}
+
+/**
+ * Cancel any pending reboot and close indicator window
+ */
+function cancelReboot() {
+    if (rebootTimeout) {
+        clearTimeout(rebootTimeout);
+        rebootTimeout = null;
+    }
+    if (rebootInterval) {
+        clearInterval(rebootInterval);
+        rebootInterval = null;
+    }
+    if (rebootWindow) {
+        rebootWindow.close();
+        rebootWindow = null;
+    }
+    console.log('Reboot canceled by user');
+}
+
 /**
  * Spawn a system reboot. Supports Linux (systemctl reboot) and Windows (shutdown -r).
  */
 function rebootSystem() {
     console.log('Rebooting system now...');
-    mainWindow.webContents.send('reboot-now');
+    if (rebootWindow) rebootWindow.close();
     if (process.platform === 'win32') {
         spawn('shutdown', ['-r', '-t', '0'], { detached: true, stdio: 'ignore' }).unref();
     } else {
@@ -40,23 +79,26 @@ function rebootSystem() {
 }
 
 /**
- * Schedule a reboot after the configured delay and send an indicator to renderer.
+ * Schedule a reboot after the configured delay and show cancel window.
  */
 function scheduleReboot() {
     if (rebootDelay > 0) {
         // Clear any existing timers
-        if (rebootTimeout) clearTimeout(rebootTimeout);
-        if (rebootInterval) clearInterval(rebootInterval);
-
+        cancelReboot();
+        
         let remaining = rebootDelay;
-        // Send initial scheduled event
-        mainWindow.webContents.send('reboot-scheduled', remaining / 1000);
+        createRebootWindow();
+
+        // send initial remaining seconds
+        rebootWindow.webContents.once('did-finish-load', () => {
+            rebootWindow.webContents.send('reboot-countdown', Math.ceil(remaining / 1000));
+        });
 
         // Set up countdown interval
         rebootInterval = setInterval(() => {
             remaining -= 1000;
             if (remaining > 0) {
-                mainWindow.webContents.send('reboot-countdown', remaining / 1000);
+                rebootWindow.webContents.send('reboot-countdown', Math.ceil(remaining / 1000));
             } else {
                 clearInterval(rebootInterval);
             }
@@ -65,7 +107,6 @@ function scheduleReboot() {
         // Set timeout to actually reboot
         rebootTimeout = setTimeout(() => {
             rebootSystem();
-            clearInterval(rebootInterval);
         }, rebootDelay);
         console.log(`Scheduled reboot in ${rebootDelay}ms`);
     }
@@ -83,7 +124,6 @@ function startRDPConnection(connectionData) {
         `/v:${connectionData.ip}`,
         `/u:${connectionData.username}`,
         `/p:${connectionData.password}`,
-        '/f',
         '/cert-ignore',
         '/dynamic-resolution',
         '+clipboard',
@@ -155,6 +195,11 @@ ipcMain.on('minimize-app', () => {
 // Handle RDP start request, which may include rebootDelay (in seconds)
 ipcMain.on('start-rdp', (event, connectionData) => {
     startRDPConnection(connectionData);
+});
+
+// Handle cancel reboot from rebootWindow
+ipcMain.on('cancel-reboot', () => {
+    cancelReboot();
 });
 
 // Handle loading connection data (including rebootDelay in seconds)
