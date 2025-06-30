@@ -8,6 +8,38 @@ let rdpProcess = null;
 let rebootDelay = 0;        // delay in milliseconds before reboot after disconnection
 let rebootTimeout = null;
 
+function parseXml(xmlString) {
+    const data = {};
+    const tagRegex = (tagName) => new RegExp(`<${tagName}>([\\s\\S]*?)<\\/${tagName}>`);
+
+    try {
+        let match;
+        match = xmlString.match(tagRegex('username'));
+        if (match) data.username = match[1];
+
+        match = xmlString.match(tagRegex('password'));
+        if (match) data.password = match[1];
+
+        match = xmlString.match(tagRegex('ip'));
+        if (match) data.ip = match[1];
+
+        match = xmlString.match(tagRegex('rebootDelay'));
+        if (match) data.rebootDelay = match[1];
+    } catch (e) {
+        console.error("Error parsing XML", e);
+    }
+    return data;
+}
+
+function buildXml(data) {
+    return `<connection>
+    <username>${data.username || ''}</username>
+    <password>${data.password || ''}</password>
+    <ip>${data.ip || ''}</ip>
+    <rebootDelay>${data.rebootDelay || '0'}</rebootDelay>
+</connection>`;
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 520,
@@ -97,10 +129,11 @@ app.whenReady().then(() => {
     createWindow();
 
     // Load saved connection data, including optional rebootDelay
-    const filePath = path.join(__dirname, 'connection_data.json');
+    const filePath = path.join(__dirname, 'connection_data.xml');
     if (fs.existsSync(filePath)) {
         try {
-            const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            const fileContent = fs.readFileSync(filePath, 'utf8');
+            const data = parseXml(fileContent);
             if (data.username && data.password && data.ip) {
                 startRDPConnection(data);
             }
@@ -138,10 +171,11 @@ ipcMain.on('start-rdp', (event, connectionData) => {
 
 // Handle loading connection data (including rebootDelay)
 ipcMain.handle('load-connection', () => {
-    const filePath = path.join(__dirname, 'connection_data.json');
+    const filePath = path.join(__dirname, 'connection_data.xml');
     try {
         if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            const fileContent = fs.readFileSync(filePath, 'utf8');
+            return parseXml(fileContent);
         }
         return {};
     } catch (error) {
@@ -152,9 +186,9 @@ ipcMain.handle('load-connection', () => {
 
 // Handle saving connection data, including rebootDelay in seconds
 ipcMain.handle('save-connection', (event, data) => {
-    const filePath = path.join(__dirname, 'connection_data.json');
+    const filePath = path.join(__dirname, 'connection_data.xml');
     try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+        fs.writeFileSync(filePath, buildXml(data));
         return { success: true, message: 'Connection data saved successfully' };
     } catch (error) {
         console.error('Error saving connection data:', error);

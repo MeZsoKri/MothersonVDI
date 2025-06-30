@@ -1,0 +1,6 @@
+<connection>
+    <username>Administrator</username>
+    <password>Menyus12</password>
+    <ip>192.168.0.254</ip>
+    <rebootDelay>60</rebootDelay>
+</connection> 
